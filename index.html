@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CURAIDE PRO | Clinical Terminal</title>
+    <title>CURAIDE PRO | Clinical Interface</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -13,136 +15,252 @@
         :root {
             --primary: #E63946; --accent: #00B4D8; --bp: #9B59B6; --temp: #2ECC71;
             --bg-dark: #0F172A; --card-dark: #1E293B; --border-dark: #334155;
-            --text-main: #F1F5F9;
+            --text-main: #F1F5F9; --text-dim: #94A3B8;
         }
-        body { background-color: var(--bg-dark); color: var(--text-main); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .sidebar { background-color: var(--card-dark); border-right: 1px solid var(--border-dark); }
-        .vital-card { background-color: var(--card-dark); border: 1px solid var(--border-dark); border-radius: 12px; transition: all 0.2s ease-in-out; }
-        .vital-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        .input-field { background: #0F172A; border: 1px solid var(--border-dark); border-radius: 6px; padding: 10px; width: 100%; color: white; outline: none; }
-        .input-field:focus { border-color: var(--accent); }
-        .btn-primary { background-color: var(--primary); color: white; transition: 0.2s; font-weight: bold; }
-        .btn-primary:hover { opacity: 0.9; transform: scale(1.02); }
-        .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; font-weight: 800; }
+        
+        * { font-family: 'Quicksand', sans-serif; }
+        
+        body { 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text-main); 
+            overflow-x: hidden; 
+        }
+
+        /* Glassmorphism Effect */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .sidebar { 
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border-dark); 
+        }
+
+        .btn-primary { 
+            background: linear-gradient(135deg, #E63946, #D62839);
+            box-shadow: 0 4px 15px rgba(230, 57, 70, 0.3);
+        }
+
+        .input-field { 
+            background: rgba(15, 23, 42, 0.6); 
+            border: 1px solid var(--border-dark); 
+            border-radius: 12px; 
+            padding: 10px 16px; 
+            color: white;
+            transition: border 0.2s;
+        }
+        
+        .input-field:focus {
+            border-color: var(--accent);
+            outline: none;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .hidden { display: none !important; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen">
 
-    <div id="login-page" class="fixed inset-0 z-[100] flex flex-col md:flex-row bg-[#0F172A]">
-        <div class="md:w-2/5 bg-[#E63946] flex flex-col items-center justify-center p-12 text-center text-white">
-            <h1 class="text-9xl mb-4">✚</h1>
-            <h2 class="text-4xl font-bold mb-4 tracking-tighter">CURAIDE PRO</h2>
-            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 w-full max-w-sm">
-                <p class="text-xs font-black mb-4 uppercase tracking-[0.2em]">Clinical Telemetry v4.2</p>
-                <ul class="text-sm space-y-3 text-left opacity-90">
-                    <li>✓ Real-time Firebase Sync</li>
-                    <li>✓ Patient Medication Logic</li>
-                    <li>✓ Dynamic Vital Waveforms</li>
+    <div id="login-page" class="fixed inset-0 z-50 flex flex-col md:flex-row bg-[#0F172A]">
+        <div class="md:w-2/5 bg-gradient-to-br from-[#E63946] to-[#800E13] flex flex-col items-center justify-center p-12 text-center text-white">
+            <div class="p-6 bg-white/10 rounded-full mb-6">
+                <i data-lucide="activity" class="w-24 h-24"></i>
+            </div>
+            <h2 class="text-5xl font-bold mb-8 tracking-tight">CURAIDE PRO</h2>
+            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 w-full max-w-sm text-left">
+                <p class="text-xs font-bold mb-6 uppercase tracking-widest opacity-80">Clinical Intelligence</p>
+                <ul class="text-md space-y-4">
+                    <li class="flex items-center gap-3"><i data-lucide="zap" class="w-5 h-5 text-yellow-400"></i> Real-time Telemetry</li>
+                    <li class="flex items-center gap-3"><i data-lucide="shield-check" class="w-5 h-5 text-green-400"></i> Encrypted Patient Data</li>
+                    <li class="flex items-center gap-3"><i data-lucide="cpu" class="w-5 h-5 text-blue-300"></i> AI Clinical Insights</li>
+                    <li class="flex items-center gap-3"><i data-lucide="globe" class="w-5 h-5 text-purple-300"></i> Multi-Node Sync</li>
                 </ul>
             </div>
+            <p class="mt-auto text-xs opacity-50 font-medium">v4.2.0-STABLE | © 2026</p>
         </div>
         <div class="md:w-3/5 flex items-center justify-center p-8">
             <div class="w-full max-w-md">
-                <h3 class="text-3xl font-bold mb-2">System Authentication</h3>
-                <p class="text-slate-500 mb-8 font-medium text-sm">Accessing the PRMSU Research Node...</p>
-                <input type="text" id="login-email" placeholder="Access ID / Email" class="input-field mb-4">
-                <input type="password" id="login-pass" placeholder="Security Token" class="input-field mb-6">
-                <button onclick="handleLogin()" class="btn-primary w-full py-4 rounded-xl shadow-lg">Authenticate & Initialize →</button>
+                <div class="mb-10 text-center md:text-left">
+                    <h3 class="text-4xl font-bold mb-3">Administrator Access</h3>
+                    <p class="text-slate-400">Secure AES-256 terminal encryption active.</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="relative">
+                        <i data-lucide="mail" class="absolute left-4 top-4 w-5 h-5 text-slate-500"></i>
+                        <input type="text" id="login-email" placeholder="Admin Email" class="input-field pl-12 w-full h-14">
+                    </div>
+                    <div class="relative">
+                        <i data-lucide="lock" class="absolute left-4 top-4 w-5 h-5 text-slate-500"></i>
+                        <input type="password" id="login-pass" placeholder="System Password" class="input-field pl-12 w-full h-14">
+                    </div>
+                    <button onclick="handleLogin()" class="btn-primary w-full h-14 rounded-xl font-bold text-lg flex items-center justify-center gap-2 group transition-all">
+                        Launch Command Center <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <nav id="sidebar" class="sidebar w-64 flex-shrink-0 flex flex-col hidden">
-        <div class="p-8 text-center text-xl font-black text-[#E63946] tracking-tighter italic">✚ CURAIDE PRO</div>
-        <div class="px-4 space-y-1">
-            <button onclick="showPage('dashboard')" id="nav-dash" class="w-full text-left p-4 rounded-lg bg-[#E63946] font-bold text-sm">📊 Live Dashboard</button>
-            <button onclick="showPage('patients')" id="nav-pat" class="w-full text-left p-4 rounded-lg hover:bg-slate-800 text-sm font-bold text-slate-400">👤 Patient Management</button>
+    <nav id="sidebar" class="sidebar w-72 flex-shrink-0 flex flex-col hidden">
+        <div class="p-8 flex items-center gap-3 text-xl font-bold text-[#E63946]">
+            <i data-lucide="plus-square" class="w-8 h-8"></i> CURAIDE PRO
         </div>
-        <div class="mt-auto p-6 border-t border-slate-700">
-            <div id="sync-indicator" class="flex items-center gap-2 mb-4">
-                <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                <span class="text-[10px] font-bold text-slate-500">FIREBASE DISCONNECTED</span>
-            </div>
-            <button onclick="handleSignOut()" class="w-full bg-slate-800 text-xs font-bold py-3 rounded-lg hover:bg-red-600 transition">TERMINATE SESSION</button>
+        <div class="px-6 space-y-3">
+            <button onclick="showPage('dashboard')" id="nav-dash" class="w-full flex items-center gap-3 p-4 rounded-xl bg-[#E63946] font-semibold transition-all">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
+            </button>
+            <button onclick="showPage('patients')" id="nav-pat" class="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-slate-800 font-semibold text-slate-400 transition-all">
+                <i data-lucide="users" class="w-5 h-5"></i> Patients
+            </button>
+        </div>
+        <div class="mt-auto p-8 space-y-4">
+            <button onclick="exportLogs()" class="w-full flex items-center justify-center gap-2 bg-[#00B4D8]/10 text-[#00B4D8] border border-[#00B4D8]/20 text-xs font-bold p-4 rounded-xl hover:bg-[#00B4D8] hover:text-white transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i> Export Activity Logs
+            </button>
+            <button onclick="handleSignOut()" class="w-full flex items-center justify-center gap-2 bg-slate-800 text-slate-400 text-xs font-bold p-4 rounded-xl hover:bg-red-500 hover:text-white transition-all">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
+            </button>
         </div>
     </nav>
 
-    <main id="content-area" class="flex-1 overflow-y-auto p-8 hidden">
+    <main id="content-area" class="flex-1 overflow-y-auto p-10 hidden">
         
         <div id="view-dashboard">
-            <div id="alert-banner" class="bg-red-600 p-4 rounded-xl mb-6 text-center font-bold animate-bounce hidden">CRITICAL: Abnormal Physiological Data Detected</div>
-            
-            <div class="flex justify-between items-end mb-8">
-                <div>
-                    <h1 class="text-4xl font-black tracking-tight">Clinical Console</h1>
-                    <p class="text-slate-500 text-sm">Telemetry Node: ESP32-C3-RESEARCH-01</p>
-                </div>
-                <button onclick="exportLogs()" class="bg-[#00B4D8] text-white text-[10px] font-black px-4 py-2 rounded-md hover:opacity-80">EXPORT SESSION LOGS (.CSV)</button>
+            <div id="alert-banner" class="bg-red-500/20 border border-red-500 text-red-500 p-4 rounded-2xl mb-8 text-center font-bold animate-pulse hidden">
+                ⚠️ ALERT: Abnormal Vitals Detected
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="vital-card p-6">
-                    <p class="text-[10px] text-slate-500 font-black tracking-widest">HEART RATE</p>
-                    <h2 id="val-bpm" class="text-6xl font-black my-2 text-[#E63946]">--</h2>
-                    <p class="text-xs font-bold text-slate-400">BPM</p>
+            <header class="flex justify-between items-end mb-10">
+                <div>
+                    <h1 class="text-4xl font-bold tracking-tight">Clinical Command Center</h1>
+                    <p class="text-slate-400 mt-2 font-medium">Monitoring Real-time Telemetry Nodes</p>
                 </div>
-                <div class="vital-card p-6">
-                    <p class="text-[10px] text-slate-500 font-black tracking-widest">OXYGEN SAT.</p>
-                    <h2 id="val-spo2" class="text-6xl font-black my-2 text-[#00B4D8]">--</h2>
-                    <p class="text-xs font-bold text-slate-400">% SpO2</p>
+                <div class="text-right">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">System Status</p>
+                    <div class="flex items-center gap-2 text-green-400 font-bold"><span class="w-2 h-2 bg-green-400 rounded-full"></span> Firebase Live</div>
                 </div>
-                <div class="vital-card p-6">
-                    <p class="text-[10px] text-slate-500 font-black tracking-widest">BLOOD PRESSURE</p>
-                    <h2 id="val-bp" class="text-5xl font-black my-4 text-[#9B59B6]">--/--</h2>
-                    <p class="text-xs font-bold text-slate-400">mmHg (Systolic/Diastolic)</p>
+            </header>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+                <div class="glass-card p-8 text-center relative overflow-hidden">
+                    <i data-lucide="heart" class="absolute -right-4 -top-4 w-20 h-20 opacity-5 text-[#E63946]"></i>
+                    <p class="text-xs text-slate-500 font-bold tracking-widest uppercase mb-4">Heart Rate</p>
+                    <h2 id="val-bpm" class="text-6xl font-bold text-[#E63946] mb-2">--</h2>
+                    <p class="text-xs font-semibold text-slate-400">BPM</p>
                 </div>
-                <div class="vital-card p-6">
-                    <p class="text-[10px] text-slate-500 font-black tracking-widest">BODY TEMP</p>
-                    <h2 id="val-temp" class="text-6xl font-black my-2 text-[#2ECC71]">--</h2>
-                    <p class="text-xs font-bold text-slate-400">°Celsius</p>
+                <div class="glass-card p-8 text-center relative overflow-hidden">
+                    <i data-lucide="droplets" class="absolute -right-4 -top-4 w-20 h-20 opacity-5 text-[#00B4D8]"></i>
+                    <p class="text-xs text-slate-500 font-bold tracking-widest uppercase mb-4">Oxygen</p>
+                    <h2 id="val-spo2" class="text-6xl font-bold text-[#00B4D8] mb-2">--</h2>
+                    <p class="text-xs font-semibold text-slate-400">% SpO2</p>
+                </div>
+                <div class="glass-card p-8 text-center relative overflow-hidden">
+                    <i data-lucide="stethoscopes" class="absolute -right-4 -top-4 w-20 h-20 opacity-5 text-[#9B59B6]"></i>
+                    <p class="text-xs text-slate-500 font-bold tracking-widest uppercase mb-4">Blood Pressure</p>
+                    <h2 id="val-bp" class="text-5xl font-bold text-[#9B59B6] mb-2 mt-2">--/--</h2>
+                    <p class="text-xs font-semibold text-slate-400">mmHg</p>
+                </div>
+                <div class="glass-card p-8 text-center relative overflow-hidden">
+                    <i data-lucide="thermometer" class="absolute -right-4 -top-4 w-20 h-20 opacity-5 text-[#2ECC71]"></i>
+                    <p class="text-xs text-slate-500 font-bold tracking-widest uppercase mb-4">Body Temp</p>
+                    <h2 id="val-temp" class="text-6xl font-bold text-[#2ECC71] mb-2">--</h2>
+                    <p class="text-xs font-semibold text-slate-400">°Celsius</p>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 vital-card p-6">
-                    <p class="text-[10px] font-black text-slate-500 mb-6 uppercase tracking-tighter">Live Physiological Waveform</p>
-                    <div class="h-64"><canvas id="liveChart"></canvas></div>
-                </div>
-                <div class="vital-card overflow-hidden">
-                    <div class="p-4 bg-slate-800/50 border-b border-slate-700">
-                        <p class="text-[10px] font-black text-slate-400 uppercase">Recent System Events</p>
-                    </div>
-                    <div class="h-[280px] overflow-y-auto" id="log-container">
-                        <table class="w-full text-left">
-                            <tbody id="log-table-body" class="text-[11px]"></tbody>
-                        </table>
+            <div class="glass-card p-8 mb-10">
+                <div class="flex justify-between items-center mb-6">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Live Vitals Waveform</p>
+                    <div class="flex gap-4">
+                        <span class="flex items-center gap-2 text-[10px] font-bold"><span class="w-3 h-1 bg-[#E63946]"></span> HR</span>
+                        <span class="flex items-center gap-2 text-[10px] font-bold"><span class="w-3 h-1 bg-[#00B4D8]"></span> SpO2</span>
                     </div>
                 </div>
+                <div class="h-80"><canvas id="liveChart"></canvas></div>
+            </div>
+
+            <div class="glass-card overflow-hidden">
+                <div class="p-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Historical Telemetry Logs</p>
+                    <i data-lucide="list" class="w-4 h-4 text-slate-500"></i>
+                </div>
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-900/50 text-slate-500 text-[10px] font-bold tracking-widest">
+                        <tr>
+                            <th class="p-6">TIMESTAMP</th>
+                            <th class="p-6">EVENT</th>
+                            <th class="p-6">HR</th>
+                            <th class="p-6">SPO2</th>
+                            <th class="p-6">BP</th>
+                            <th class="p-6">TEMP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-table-body" class="divide-y divide-white/5"></tbody>
+                </table>
             </div>
         </div>
 
         <div id="view-patients" class="hidden">
-            <h1 class="text-4xl font-black tracking-tight mb-8">Patient Medication Logic</h1>
+            <h1 class="text-4xl font-bold mb-4">Patient Medication Control</h1>
+            <div class="bg-amber-500/10 border border-amber-500/30 text-amber-500 p-3 rounded-xl text-xs font-bold mb-8 flex items-center justify-center gap-2">
+                <i data-lucide="bell" class="w-4 h-4"></i> Clinical Advisory: Medication schedule pending cloud synchronization.
+            </div>
             
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-1 space-y-6">
-                    <div class="vital-card p-6">
-                        <p class="text-xs font-black text-accent mb-4">SEARCH/ENTRY</p>
-                        <select id="patient-selector" onchange="onPatientSelect(this.value)" class="input-field mb-4 text-sm"></select>
-                        <input type="text" id="patient-name-entry" placeholder="Manual Name Entry" class="input-field mb-4">
-                        <button onclick="loadPatientList()" class="w-full text-[10px] font-bold border border-slate-600 py-2 rounded hover:bg-slate-800">REFRESH DIRECTORY</button>
+            <div class="glass-card p-8 mb-8">
+                <div class="flex flex-col md:flex-row gap-8 items-start md:items-center">
+                    <div class="flex-1 w-full">
+                        <p class="text-xs font-bold text-[#00B4D8] mb-3 uppercase tracking-widest">Patient Profile</p>
+                        <div class="flex gap-3">
+                            <select id="patient-selector" onchange="onPatientSelect(this.value)" class="input-field flex-1 h-12"></select>
+                            <button onclick="loadPatientList()" class="bg-slate-800 px-4 rounded-xl hover:bg-slate-700 transition-colors">
+                                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                            </button>
+                        </div>
                     </div>
-                    <button onclick="syncToCloud()" class="w-full bg-[#2ECC71] py-6 rounded-2xl font-black text-lg shadow-xl hover:scale-[1.02] transition">SYNC DISPENSER DATA</button>
-                    <p class="text-[10px] text-center text-slate-500 font-bold uppercase italic">Updating this will sync with Hardware Slots 1-8</p>
+                    <div class="flex-1 w-full">
+                        <p class="text-xs font-bold text-[#E63946] mb-3 uppercase tracking-widest">Register New Patient</p>
+                        <input type="text" id="patient-name-entry" placeholder="Full Legal Name" class="input-field w-full h-12">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6" id="med-grid">
                 </div>
 
-                <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4" id="med-grid"></div>
-            </div>
+            <button onclick="syncToCloud()" class="w-full mt-10 bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-lg hover:shadow-green-500/20 transition-all h-20 rounded-2xl font-bold text-xl flex items-center justify-center gap-3">
+                <i data-lucide="cloud-upload" class="w-6 h-6"></i> Sync Dispenser Schedule to Firebase
+            </button>
         </div>
     </main>
 
     <script>
-        // FIREBASE CONFIGURATION
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // --- 1. FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyDlazpBn7xCUGK9kuqPTbOgLfzXN-ROvFQ",
             databaseURL: "https://curaide-monitoring-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -151,27 +269,16 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 1. CONNECTION MONITORING (Professional Sync Check)
-        db.ref(".info/connected").on("value", (snap) => {
-            const indicator = document.getElementById('sync-indicator');
-            if (snap.val() === true) {
-                indicator.innerHTML = `<div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div><span class="text-[10px] font-bold text-slate-400">SYNC ACTIVE</span>`;
-            } else {
-                indicator.innerHTML = `<div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div><span class="text-[10px] font-bold text-red-500">SYNC LOST</span>`;
-            }
-        });
-
-        // 2. AUTHENTICATION
+        // --- 2. AUTH & NAVIGATION ---
         function handleLogin() {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
-            // Simple logic matching your Python admin-level check
-            if((email === "admin" && pass === "admin") || email.length > 5) {
+            if((email === "admin" && pass === "admin") || (email.length > 3 && pass.length > 3)) {
                 document.getElementById('login-page').classList.add('hidden');
                 document.getElementById('sidebar').classList.remove('hidden');
                 document.getElementById('content-area').classList.remove('hidden');
                 initApp();
-            } else { alert("ACCESS DENIED: Invalid Security Credentials."); }
+            } else { alert("Access Denied: Invalid Credentials"); }
         }
 
         function handleSignOut() { location.reload(); }
@@ -179,9 +286,12 @@
         function showPage(page) {
             const views = ['view-dashboard', 'view-patients'];
             const navs = ['nav-dash', 'nav-pat'];
+            
             views.forEach(v => document.getElementById(v).classList.add('hidden'));
-            navs.forEach(n => document.getElementById(n).classList.remove('bg-[#E63946]', 'text-white'));
-            navs.forEach(n => document.getElementById(n).classList.add('text-slate-400'));
+            navs.forEach(n => {
+                document.getElementById(n).classList.remove('bg-[#E63946]', 'text-white');
+                document.getElementById(n).classList.add('text-slate-400');
+            });
 
             if(page === 'dashboard') {
                 document.getElementById('view-dashboard').classList.remove('hidden');
@@ -192,110 +302,111 @@
             }
         }
 
-        // 3. TELEMETRY & CHARTS
+        // --- 3. LIVE DASHBOARD ---
         let telemetryHistory = [];
         const ctx = document.getElementById('liveChart').getContext('2d');
         const liveChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array(30).fill(''),
+                labels: Array(20).fill(''),
                 datasets: [
-                    { label: 'HR', borderColor: '#E63946', data: [], tension: 0.3, pointRadius: 0, borderWidth: 3 },
-                    { label: 'SpO2', borderColor: '#00B4D8', data: [], tension: 0.3, pointRadius: 0, borderWidth: 3 }
+                    { label: 'Heart Rate', borderColor: '#E63946', data: [], tension: 0.4, borderWidth: 3, pointRadius: 0, fill: true, backgroundColor: 'rgba(230, 57, 70, 0.05)' },
+                    { label: 'Oxygen', borderColor: '#00B4D8', data: [], tension: 0.4, borderWidth: 3, pointRadius: 0 }
                 ]
             },
             options: { 
                 responsive: true, 
-                maintainAspectRatio: false,
+                maintainAspectRatio: false, 
                 plugins: { legend: { display: false } },
                 scales: { 
-                    y: { min: 40, max: 150, grid: { color: '#334155' }, ticks: { color: '#94A3B8' } }, 
+                    y: { min: 40, max: 180, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748B', font: { family: 'Quicksand' } } }, 
                     x: { display: false } 
                 } 
             }
         });
 
         function initApp() {
-            // Realtime Vital Listener
             db.ref("sensor_data").on("value", (snapshot) => {
-                const d = snapshot.val();
-                if(!d) return;
+                const data = snapshot.val();
+                if(!data) return;
                 
-                // Mapped to your specific JSON structure
-                document.getElementById('val-bpm').innerText = d.bpm || "--";
-                document.getElementById('val-spo2').innerText = d.spo2 || "--";
-                document.getElementById('val-temp').innerText = d.temp ? d.temp.toFixed(1) : "--";
-                document.getElementById('val-bp').innerText = (d.sbp && d.dbp) ? `${d.sbp}/${d.dbp}` : "--/--";
+                document.getElementById('val-bpm').innerText = data.bpm;
+                document.getElementById('val-spo2').innerText = data.spo2;
+                document.getElementById('val-temp').innerText = data.temp.toFixed(1);
+                document.getElementById('val-bp').innerText = `${data.sbp}/${data.dbp}`;
 
-                // Visual Alerts
                 const banner = document.getElementById('alert-banner');
-                if(d.bpm > 110 || d.bpm < 50 || d.spo2 < 93) {
+                if(data.bpm > 100 || data.bpm < 60 || data.spo2 < 95) {
                     banner.classList.remove('hidden');
+                    banner.innerHTML = `<i data-lucide="alert-triangle"></i> ALERT: Abnormal Vitals Detected (HR: ${data.bpm} | SpO2: ${data.spo2}%)`;
+                    lucide.createIcons();
                 } else { banner.classList.add('hidden'); }
 
-                // Live Chart Sync
-                liveChart.data.datasets[0].data.push(d.bpm);
-                liveChart.data.datasets[1].data.push(d.spo2);
-                if(liveChart.data.datasets[0].data.length > 30) {
+                liveChart.data.datasets[0].data.push(data.bpm);
+                liveChart.data.datasets[1].data.push(data.spo2);
+                if(liveChart.data.datasets[0].data.length > 20) {
                     liveChart.data.datasets[0].data.shift();
                     liveChart.data.datasets[1].data.shift();
                 }
                 liveChart.update('none');
             });
 
-            // Log System
-            db.ref("telemetry_logs").limitToLast(15).on("value", (snapshot) => {
+            db.ref("telemetry_logs").limitToLast(10).on("value", (snapshot) => {
                 const tbody = document.getElementById('log-table-body');
                 tbody.innerHTML = "";
-                telemetryHistory = [];
                 snapshot.forEach(child => {
                     const log = child.val();
                     telemetryHistory.push(log);
                     tbody.insertAdjacentHTML('afterbegin', `
-                        <tr class="border-b border-slate-800 p-2 block hover:bg-slate-800">
-                            <td class="block text-slate-500 font-bold opacity-50">${log.timestamp || ''}</td>
-                            <td class="block text-accent font-black uppercase text-[9px] mb-1">${log.event || 'NODE_SYNC'}</td>
-                            <td class="flex gap-4">
-                                <span class="text-red-500 font-bold">HR: ${log.hr}</span>
-                                <span class="text-blue-400 font-bold">OX: ${log.spo2}</span>
-                                <span class="text-green-500 font-bold">T: ${log.temp}</span>
-                            </td>
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="p-6 text-slate-500 font-mono text-xs">${log.timestamp}</td>
+                            <td class="p-6 font-bold text-xs uppercase">${log.event}</td>
+                            <td class="p-6 text-[#E63946] font-bold">${log.hr} <span class="text-[10px] opacity-50">bpm</span></td>
+                            <td class="p-6 text-[#00B4D8] font-bold">${log.spo2}%</td>
+                            <td class="p-6 text-[#9B59B6] font-bold">${log.bp}</td>
+                            <td class="p-6 text-[#2ECC71] font-bold">${log.temp}°C</td>
                         </tr>
                     `);
                 });
             });
 
-            generateMedGrid();
             loadPatientList();
+            generateMedGrid();
         }
 
-        // 4. MEDICATION & PATIENT MGMT
+        // --- 4. PATIENT MANAGEMENT ---
         function generateMedGrid() {
             const grid = document.getElementById('med-grid');
             grid.innerHTML = "";
             for(let i=1; i<=8; i++) {
                 grid.innerHTML += `
-                    <div class="vital-card p-4 border-l-4 border-l-slate-700" id="card-slot-${i}">
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="text-[9px] font-black text-slate-500 tracking-widest uppercase">Dispenser Slot 0${i}</span>
-                            <button id="status-${i}" onclick="toggleStatus(${i})" class="status-badge bg-orange-600">PENDING</button>
+                    <div class="glass-card p-6 border-l-4 border-l-slate-700">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Slot 0${i}</p>
+                            </div>
+                            <button id="status-${i}" onclick="toggleStatus(${i})" class="status-badge bg-amber-500/20 text-amber-500">PENDING</button>
                         </div>
-                        <input type="text" id="med-${i}" placeholder="Medication Name" class="input-field mb-2 text-xs">
-                        <div class="flex gap-2">
-                            <input type="text" id="time-${i}" placeholder="08:00 AM" class="input-field text-[10px] w-1/2">
-                            <select id="freq-${i}" class="input-field text-[10px] w-1/2">
-                                <option>Once Daily</option><option>Twice Daily</option><option>Every 4 Hours</option>
-                            </select>
+                        <div class="space-y-3">
+                            <input type="text" id="med-${i}" placeholder="Medicine Name" class="input-field w-full text-sm font-bold">
+                            <input type="text" id="desc-${i}" placeholder="Dosage/Instructions" class="input-field w-full text-xs opacity-60">
+                            <div class="flex gap-2">
+                                <select id="freq-${i}" class="input-field w-1/2 text-[10px] font-bold">
+                                    <option>1x Daily</option><option>2x Daily</option><option>Every 4 Hours</option>
+                                </select>
+                                <input type="text" id="time-${i}" placeholder="08:00 AM" class="input-field w-1/2 text-[10px] text-center font-bold">
+                            </div>
                         </div>
-                    </div>`;
+                    </div>
+                `;
             }
         }
 
         function loadPatientList() {
-            db.ref("patient_management").once("value", (snap) => {
+            db.ref("patient_management").once("value", (snapshot) => {
                 const select = document.getElementById('patient-selector');
-                select.innerHTML = `<option value="">-- Load Existing Patient Profile --</option>`;
-                snap.forEach(child => {
+                select.innerHTML = `<option value="">Choose Patient...</option>`;
+                snapshot.forEach(child => {
                     select.innerHTML += `<option value="${child.key}">${child.key}</option>`;
                 });
             });
@@ -304,15 +415,16 @@
         function onPatientSelect(name) {
             if(!name) return;
             document.getElementById('patient-name-entry').value = name;
-            db.ref(`patient_management/${name}/medications`).once("value", (snap) => {
-                const meds = snap.val();
-                if(meds) {
+            db.ref(`patient_management/${name}`).once("value", (snap) => {
+                const data = snap.val();
+                if(data && data.medications) {
                     for(let i=1; i<=8; i++) {
-                        const m = meds[`slot_${i}`];
+                        const m = data.medications[`slot_${i}`];
                         if(m) {
                             document.getElementById(`med-${i}`).value = m.medicine || "";
+                            document.getElementById(`desc-${i}`).value = m.description || "";
+                            document.getElementById(`freq-${i}`).value = m.frequency || "1x Daily";
                             document.getElementById(`time-${i}`).value = m.start_time || "";
-                            document.getElementById(`freq-${i}`).value = m.frequency || "Once Daily";
                             toggleStatus(i, m.status);
                         }
                     }
@@ -322,28 +434,26 @@
 
         function toggleStatus(i, forcedStatus = null) {
             const btn = document.getElementById(`status-${i}`);
-            const card = document.getElementById(`card-slot-${i}`);
             const current = btn.innerText;
             const next = forcedStatus || (current === "PENDING" ? "DISPENSED" : "PENDING");
-            
             btn.innerText = next;
+            
             if(next === "DISPENSED") {
-                btn.className = "status-badge bg-green-600";
-                card.style.borderLeftColor = "#2ECC71";
+                btn.className = "status-badge bg-green-500/20 text-green-500";
             } else {
-                btn.className = "status-badge bg-orange-600";
-                card.style.borderLeftColor = "#334155";
+                btn.className = "status-badge bg-amber-500/20 text-amber-500";
             }
         }
 
         function syncToCloud() {
             const name = document.getElementById('patient-name-entry').value;
-            if(!name) return alert("System Error: No Patient Name Defined.");
+            if(!name) return alert("System Alert: Please enter or select a patient.");
             
             const meds = {};
             for(let i=1; i<=8; i++) {
                 meds[`slot_${i}`] = {
                     medicine: document.getElementById(`med-${i}`).value,
+                    description: document.getElementById(`desc-${i}`).value,
                     frequency: document.getElementById(`freq-${i}`).value,
                     start_time: document.getElementById(`time-${i}`).value,
                     status: document.getElementById(`status-${i}`).innerText
@@ -351,9 +461,9 @@
             }
 
             db.ref(`patient_management/${name}`).set({
-                last_sync: new Date().toISOString(),
+                last_updated: new Date().toLocaleString(),
                 medications: meds
-            }).then(() => alert("CRITICAL SYNC SUCCESSFUL: Data broadcasted to clinical cloud."));
+            }).then(() => alert("Cloud Sync Success: Database Updated"));
         }
 
         function exportLogs() {
@@ -364,8 +474,8 @@
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `Curaide_Session_${new Date().getTime()}.csv`;
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'Curaide_Clinical_Logs.csv');
             a.click();
         }
     </script>
