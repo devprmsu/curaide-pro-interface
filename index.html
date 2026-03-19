@@ -227,14 +227,16 @@
                     <div class="flex-1 w-full">
                         <p class="text-xs font-bold text-[#00B4D8] mb-3 uppercase tracking-widest">Patient Profile</p>
                         <div class="flex gap-3">
-                            <select id="patient-selector" onchange="onPatientSelect(this.value)" class="input-field flex-1 h-12"></select>
+                            <select id="patient-selector" onchange="onPatientSelect(this.value)" class="input-field flex-1 h-12">
+                                <option value="">Choose Patient...</option>
+                            </select>
                             <button onclick="loadPatientList()" class="bg-slate-800 px-4 rounded-xl hover:bg-slate-700 transition-colors">
                                 <i data-lucide="refresh-cw" class="w-5 h-5"></i>
                             </button>
                         </div>
                     </div>
                     <div class="flex-1 w-full">
-                        <p class="text-xs font-bold text-[#E63946] mb-3 uppercase tracking-widest">Register New Patient</p>
+                        <p class="text-xs font-bold text-[#E63946] mb-3 uppercase tracking-widest">Register/Edit Patient Name</p>
                         <input type="text" id="patient-name-entry" placeholder="Full Legal Name" class="input-field w-full h-12">
                     </div>
                 </div>
@@ -260,7 +262,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 2. NAVIGATION
+        // 2. APP STATE & NAVIGATION
         function handleLogin() {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
@@ -277,11 +279,13 @@
         function showPage(page) {
             const views = ['view-dashboard', 'view-patients'];
             const navs = ['nav-dash', 'nav-pat'];
+            
             views.forEach(v => document.getElementById(v).classList.add('hidden'));
             navs.forEach(n => {
                 document.getElementById(n).classList.remove('bg-[#E63946]', 'text-white');
                 document.getElementById(n).classList.add('text-slate-400');
             });
+
             if(page === 'dashboard') {
                 document.getElementById('view-dashboard').classList.remove('hidden');
                 document.getElementById('nav-dash').classList.add('bg-[#E63946]', 'text-white');
@@ -291,45 +295,59 @@
             }
         }
 
-        // 3. CHART & TELEMETRY
-        let telemetryHistory = [];
-        const ctx = document.getElementById('liveChart').getContext('2d');
-        const liveChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: Array(20).fill(''),
-                datasets: [
-                    { label: 'Heart Rate', borderColor: '#E63946', data: [], tension: 0.4, borderWidth: 3, pointRadius: 0, fill: true, backgroundColor: 'rgba(230, 57, 70, 0.05)' },
-                    { label: 'Oxygen', borderColor: '#00B4D8', data: [], tension: 0.4, borderWidth: 3, pointRadius: 0 }
-                ]
-            },
-            options: { 
-                responsive: true, maintainAspectRatio: false, 
-                plugins: { legend: { display: false } },
-                scales: { 
-                    y: { min: 40, max: 180, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748B' } }, 
-                    x: { display: false } 
-                } 
-            }
-        });
+        // 3. TELEMETRY & CHARTING
+        let liveChart;
+        function initChart() {
+            const ctx = document.getElementById('liveChart').getContext('2d');
+            liveChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(20).fill(''),
+                    datasets: [
+                        { label: 'Heart Rate', borderColor: '#E63946', data: Array(20).fill(null), tension: 0.4, borderWidth: 3, pointRadius: 0, fill: true, backgroundColor: 'rgba(230, 57, 70, 0.05)' },
+                        { label: 'Oxygen', borderColor: '#00B4D8', data: Array(20).fill(null), tension: 0.4, borderWidth: 3, pointRadius: 0 }
+                    ]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        y: { min: 40, max: 180, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748B' } }, 
+                        x: { display: false } 
+                    },
+                    animation: { duration: 400 }
+                }
+            });
+        }
 
         function initApp() {
+            initChart();
+            generateMedGrid();
+            loadPatientList();
+
             // Real-time sensor listener
             db.ref("sensor_data").on("value", (snapshot) => {
                 const data = snapshot.val();
                 if(!data) return;
+                
                 document.getElementById('val-bpm').innerText = data.bpm || "--";
                 document.getElementById('val-spo2').innerText = data.spo2 || "--";
-                document.getElementById('val-temp').innerText = data.temp ? data.temp.toFixed(1) : "--";
+                document.getElementById('val-temp').innerText = data.temp ? parseFloat(data.temp).toFixed(1) : "--";
                 document.getElementById('val-bp').innerText = (data.sbp && data.dbp) ? `${data.sbp}/${data.dbp}` : "--/--";
 
-                // Live Chart Sync
+                // Pulse Alert logic
+                const banner = document.getElementById('alert-banner');
+                if(data.bpm > 110 || data.bpm < 50 || data.spo2 < 90) {
+                    banner.classList.remove('hidden');
+                } else {
+                    banner.classList.add('hidden');
+                }
+
+                // Chart Sync
                 liveChart.data.datasets[0].data.push(data.bpm);
                 liveChart.data.datasets[1].data.push(data.spo2);
-                if(liveChart.data.datasets[0].data.length > 20) {
-                    liveChart.data.datasets[0].data.shift();
-                    liveChart.data.datasets[1].data.shift();
-                }
+                liveChart.data.datasets[0].data.shift();
+                liveChart.data.datasets[1].data.shift();
                 liveChart.update('none');
             });
 
@@ -337,32 +355,31 @@
             db.ref("telemetry_logs").limitToLast(10).on("value", (snapshot) => {
                 const tbody = document.getElementById('log-table-body');
                 tbody.innerHTML = "";
-                snapshot.forEach(child => {
-                    const log = child.val();
-                    tbody.insertAdjacentHTML('afterbegin', `
-                        <tr class="hover:bg-white/5">
-                            <td class="p-6 text-slate-500 font-mono text-xs">${log.timestamp}</td>
-                            <td class="p-6 font-bold text-xs uppercase">${log.event}</td>
-                            <td class="p-6 text-[#E63946] font-bold">${log.hr} bpm</td>
-                            <td class="p-6 text-[#00B4D8] font-bold">${log.spo2}%</td>
-                            <td class="p-6 text-[#9B59B6] font-bold">${log.bp}</td>
-                            <td class="p-6 text-[#2ECC71] font-bold">${log.temp}°C</td>
+                const logs = [];
+                snapshot.forEach(child => logs.push(child.val()));
+                
+                logs.reverse().forEach(log => {
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="p-6 text-slate-500 font-mono text-xs">${log.timestamp || 'N/A'}</td>
+                            <td class="p-6 font-bold text-xs uppercase">${log.event || 'LOG'}</td>
+                            <td class="p-6 text-[#E63946] font-bold">${log.hr || '--'} bpm</td>
+                            <td class="p-6 text-[#00B4D8] font-bold">${log.spo2 || '--'}%</td>
+                            <td class="p-6 text-[#9B59B6] font-bold">${log.bp || '--/--'}</td>
+                            <td class="p-6 text-[#2ECC71] font-bold">${log.temp || '--'}°C</td>
                         </tr>
                     `);
                 });
             });
-
-            loadPatientList();
-            generateMedGrid();
         }
 
-        // 4. PATIENT & MEDICATION SYNC
+        // 4. MEDICATION MANAGEMENT
         function generateMedGrid() {
             const grid = document.getElementById('med-grid');
             grid.innerHTML = "";
             for(let i=1; i<=8; i++) {
                 grid.innerHTML += `
-                    <div class="glass-card p-6 border-l-4 border-l-slate-700">
+                    <div class="glass-card p-6 border-l-4 border-l-slate-700 transition-all hover:border-l-accent">
                         <div class="flex justify-between items-start mb-6">
                             <p class="text-[10px] font-black text-slate-500 uppercase">Slot 0${i}</p>
                             <button id="status-${i}" onclick="toggleStatus(${i})" class="status-badge bg-amber-500/20 text-amber-500">PENDING</button>
@@ -372,7 +389,7 @@
                             <input type="text" id="desc-${i}" placeholder="Dosage" class="input-field w-full text-xs opacity-60">
                             <div class="flex gap-2">
                                 <select id="freq-${i}" class="input-field w-1/2 text-[10px] font-bold">
-                                    <option>1x Daily</option><option>2x Daily</option><option>Every 4 Hours</option>
+                                    <option>1x Daily</option><option>2x Daily</option><option>Every 4 Hours</option><option>As Needed</option>
                                 </select>
                                 <input type="text" id="time-${i}" placeholder="08:00 AM" class="input-field w-1/2 text-[10px] text-center font-bold">
                             </div>
@@ -385,19 +402,27 @@
         function loadPatientList() {
             db.ref("patient_management").once("value", (snapshot) => {
                 const select = document.getElementById('patient-selector');
+                const currentValue = select.value;
                 select.innerHTML = `<option value="">Choose Patient...</option>`;
                 snapshot.forEach(child => {
                     select.innerHTML += `<option value="${child.key}">${child.key}</option>`;
                 });
+                select.value = currentValue;
             });
         }
 
         function onPatientSelect(name) {
-            if(!name) return;
+            if(!name) {
+                document.getElementById('patient-name-entry').value = "";
+                return;
+            }
             document.getElementById('patient-name-entry').value = name;
             db.ref(`patient_management/${name}/medications`).once("value", (snap) => {
                 const data = snap.val();
-                if(!data) return;
+                if(!data) {
+                    clearMedInputs();
+                    return;
+                }
                 for(let i=1; i<=8; i++) {
                     const m = data[`slot_${i}`];
                     if(m) {
@@ -405,29 +430,43 @@
                         document.getElementById(`desc-${i}`).value = m.description || "";
                         document.getElementById(`freq-${i}`).value = m.frequency || "1x Daily";
                         document.getElementById(`time-${i}`).value = m.start_time || "";
-                        updateStatusUI(i, m.status);
+                        updateStatusUI(i, m.status || "PENDING");
                     }
                 }
             });
         }
 
+        function clearMedInputs() {
+            for(let i=1; i<=8; i++) {
+                document.getElementById(`med-${i}`).value = "";
+                document.getElementById(`desc-${i}`).value = "";
+                updateStatusUI(i, "PENDING");
+            }
+        }
+
         function updateStatusUI(i, status) {
             const btn = document.getElementById(`status-${i}`);
             btn.innerText = status;
-            btn.className = status === "DISPENSED" ? "status-badge bg-green-500/20 text-green-500" : "status-badge bg-amber-500/20 text-amber-500";
+            if(status === "DISPENSED") {
+                btn.className = "status-badge bg-green-500/20 text-green-500";
+            } else {
+                btn.className = "status-badge bg-amber-500/20 text-amber-500";
+            }
         }
 
         function toggleStatus(i) {
             const btn = document.getElementById(`status-${i}`);
             const next = btn.innerText === "PENDING" ? "DISPENSED" : "PENDING";
             updateStatusUI(i, next);
-            // AUTO SYNC TO CLOUD ON TOGGLE
             syncToCloud(false); 
         }
 
         function syncToCloud(showAlert = true) {
-            const name = document.getElementById('patient-name-entry').value;
-            if(!name) { if(showAlert) alert("Select a patient first."); return; }
+            const name = document.getElementById('patient-name-entry').value.trim();
+            if(!name) { 
+                if(showAlert) alert("Enter or select a patient name."); 
+                return; 
+            }
             
             const meds = {};
             for(let i=1; i<=8; i++) {
@@ -443,22 +482,30 @@
             db.ref(`patient_management/${name}`).update({
                 last_updated: new Date().toLocaleString(),
                 medications: meds
-            }).then(() => { if(showAlert) alert("Synced successfully!"); });
+            }).then(() => { 
+                if(showAlert) alert("System Synced Successfully!"); 
+                loadPatientList();
+            }).catch(err => {
+                console.error(err);
+                alert("Sync Failed. Check Console.");
+            });
         }
 
         function exportLogs() {
             let csv = "Timestamp,Event,HR,SpO2,BP,Temp\n";
-            // Simple log generation logic
             const rows = document.querySelectorAll('#log-table-body tr');
+            if(rows.length === 0) { alert("No logs available to export."); return; }
+            
             rows.forEach(tr => {
                 const cells = tr.querySelectorAll('td');
                 csv += Array.from(cells).map(c => c.innerText.replace(',', '')).join(',') + "\n";
             });
+            
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'Curaide_Logs.csv';
+            a.download = `Curaide_Logs_${new Date().getTime()}.csv`;
             a.click();
         }
     </script>
