@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CURAIDE PRO | Clinical Interface</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    
+    <style>
+        :root {
+            --primary: #E63946;
+            --accent: #00B4D8;
+            --bp-color: #9B59B6;
+            --temp-color: #2ECC71;
+            --alert-bg: #780000;
+            --feat-card-bg: #EF626C;
+            --feat-border: #F48C94;
+            --radius: 16px;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            
+            /* Theme 0: Light */
+            --bg-0: #F8FAFC; --card-0: #FFFFFF; --text-0: #1E293B; --border-0: #E2E8F0;
+            /* Theme 1: Dark */
+            --bg-1: #0F172A; --card-1: #1E293B; --text-1: #F1F5F9; --border-1: #334155;
+            /* Theme 2: Amoled */
+            --bg-2: #000000; --card-2: #0A0A0A; --text-2: #E2E8F0; --border-2: #1E293B;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            font-family: var(--font-family);
+            height: 100%;
+            overflow: hidden;
+            transition: background 0.3s ease;
+        }
+
+        /* Dynamic Theme Classes */
+        body.theme-0 { background: var(--bg-0); color: var(--text-0); }
+        body.theme-1 { background: var(--bg-1); color: var(--text-1); }
+        body.theme-2 { background: var(--bg-2); color: var(--text-2); }
+
+        .page { display: none; height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; }
+        .page.active { display: flex; }
+
+        /* Login Page */
+        #login-page { flex-direction: row; }
+        .left-brand { width: 40%; background: var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; }
+        .right-form { width: 60%; display: flex; align-items: center; justify-content: center; }
+        .feat-card { background: var(--feat-card-bg); border: 1px solid var(--feat-border); border-radius: 12px; padding: 20px; width: 70%; margin-top: 30px; text-align: left; }
+        .input-group { width: 380px; }
+        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 18px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; }
+
+        /* Dashboard Layout */
+        .sidebar { width: 260px; height: 100%; display: flex; flex-direction: column; border-right: 1px solid transparent; transition: all 0.3s; }
+        .theme-0 .sidebar { background: var(--card-0); border-color: var(--border-0); }
+        .theme-1 .sidebar { background: var(--card-1); border-color: var(--border-1); }
+        .theme-2 .sidebar { background: var(--card-2); border-color: var(--border-2); }
+
+        .content-view { flex: 1; overflow-y: auto; padding: 30px; }
+        .sidebar-btn { padding: 15px 25px; text-align: left; background: transparent; border: none; cursor: pointer; font-size: 14px; font-weight: bold; color: inherit; width: 90%; margin: 5px auto; border-radius: 8px; }
+        .sidebar-btn.active { background: var(--primary); color: white; }
+
+        /* Telemetry Cards */
+        .grid-layout { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .card { border-radius: var(--radius); padding: 20px; border: 1px solid transparent; position: relative; }
+        .theme-0 .card { background: var(--card-0); border-color: var(--border-0); }
+        .theme-1 .card { background: var(--card-1); border-color: var(--border-1); }
+        .theme-2 .card { background: var(--card-2); border-color: var(--border-2); }
+        
+        .card-val { font-size: 32px; font-weight: bold; margin: 10px 0; }
+        .card-unit { color: #94A3B8; font-size: 11px; font-weight: bold; }
+
+        /* Canvas / Graph */
+        canvas { width: 100%; height: 250px; background: transparent; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; font-size: 11px; color: #64748B; padding: 10px; }
+        td { padding: 10px; border-bottom: 1px solid #33415522; font-size: 13px; }
+
+        /* Alert Banner */
+        #alert-banner { background: var(--alert-bg); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; text-align: center; }
+
+        /* Patient Slots */
+        .patient-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .slot-card { padding: 15px; border-radius: 12px; border: 1px solid var(--border-1); }
+        .status-badge { float: right; padding: 4px 10px; border-radius: 4px; font-size: 11px; color: white; cursor: pointer; }
+    </style>
+</head>
+<body class="theme-1">
+
+    <div id="LoginPage" class="page active">
+        <div class="left-brand">
+            <div style="font-size: 90px;">✚</div>
+            <h1>CURAIDE PRO</h1>
+            <div class="feat-card">
+                <div style="font-size: 12px; font-weight: bold; margin-bottom: 10px;">CORE CAPABILITIES</div>
+                <div>⚡ Real-time Vital Telemetry</div>
+                <div>🔒 Encrypted Patient Data</div>
+                <div>🧠 AI Clinical Insights</div>
+                <div>🌐 Multi-Node Synchronization</div>
+            </div>
+            <div style="margin-top: 50px; font-size: 10px;">Version 4.2.0-Stable | © 2026</div>
+        </div>
+        <div class="right-form">
+            <div class="input-group">
+                <h1 style="margin: 0;">Clinic Login</h1>
+                <p style="color: #64748B; margin-bottom: 40px;">Secure terminal encryption active.</p>
+                <input type="text" id="login-email" placeholder="Administrator Email">
+                <input type="password" id="login-pass" placeholder="System Password">
+                <button class="btn-primary" onclick="handleLogin()">Launch Command Center →</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="MainDashboard" class="page">
+        <div class="sidebar">
+            <h2 style="color: var(--primary); text-align: center; margin: 40px 0;">✚ CURAIDE PRO</h2>
+            <button class="sidebar-btn active">📊 Dashboard</button>
+            <button class="sidebar-btn" onclick="showPage('PatientPage')">👤 Patients</button>
+            <div style="margin-top: auto; padding-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+                <button class="sidebar-btn" onclick="rotateTheme()" style="border: 1px solid gray;">🌓 Theme</button>
+                <button class="sidebar-btn" onclick="showPage('LoginPage')" style="background: #334155; color: white;">🚪 Sign Out</button>
+            </div>
+        </div>
+        <div class="content-view">
+            <div id="alert-banner">⚠️ ALERT: Abnormal Vitals Detected</div>
+            <h1 style="font-size: 38px;">Clinical Command Center</h1>
+            
+            <div class="grid-layout">
+                <div class="card">
+                    <span style="color: #64748B; font-size: 11px;">❤️ HEART RATE</span>
+                    <div class="card-val" id="val-bpm" style="color: var(--primary);">--</div>
+                    <div class="card-unit">BPM</div>
+                </div>
+                <div class="card">
+                    <span style="color: #64748B; font-size: 11px;">💧 OXYGEN</span>
+                    <div class="card-val" id="val-spo2" style="color: var(--accent);">--</div>
+                    <div class="card-unit">%</div>
+                </div>
+                <div class="card">
+                    <span style="color: #64748B; font-size: 11px;">🩺 BLOOD PRESSURE</span>
+                    <div class="card-val" id="val-bp" style="color: var(--bp-color);">--/--</div>
+                    <div class="card-unit">mmHg</div>
+                </div>
+                <div class="card">
+                    <span style="color: #64748B; font-size: 11px;">🌡️ BODY TEMP</span>
+                    <div class="card-val" id="val-temp" style="color: var(--temp-color);">--</div>
+                    <div class="card-unit">°C</div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 20px;">
+                <div style="font-size: 11px; color: #64748B; margin-bottom: 10px;">LIVE VITALS WAVEFORM</div>
+                <canvas id="vitalChart"></canvas>
+            </div>
+
+            <div class="card">
+                <div style="font-size: 11px; color: #64748B;">RECENT ACTIVITY LOGS</div>
+                <table id="log-table">
+                    <thead>
+                        <tr><th>TIMESTAMP</th><th>EVENT</th><th>HEART RATE</th><th>SPO2</th><th>BP</th><th>TEMP</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="PatientPage" class="page">
+        <div class="sidebar">
+            <h2 style="color: var(--primary); text-align: center; margin: 40px 0;">✚ CURAIDE PRO</h2>
+            <button class="sidebar-btn" onclick="showPage('MainDashboard')">📊 Dashboard</button>
+            <button class="sidebar-btn active">👤 Patients</button>
+            <div style="margin-top: auto; padding-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+                <button class="sidebar-btn" onclick="rotateTheme()" style="border: 1px solid gray;">🌓 Theme</button>
+                <button class="sidebar-btn" onclick="showPage('LoginPage')" style="background: #334155; color: white;">🚪 Sign Out</button>
+            </div>
+        </div>
+        <div class="content-view">
+            <h1>Patient Medication Control</h1>
+            <div class="card" style="margin-bottom: 20px;">
+                <label style="font-size: 11px; color: var(--accent);">ENTER PATIENT NAME</label><br>
+                <input type="text" id="patient-name" style="width: 400px;" placeholder="Full Patient Name">
+                <button onclick="syncToCloud()" class="btn-primary" style="width: auto; padding: 10px 30px; background: var(--temp-color);">💾 Sync to Cloud</button>
+            </div>
+
+            <div class="patient-grid" id="slot-container">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const config = {
+            apiKey: "AIzaSyDlazpBn7xCUGK9kuqPTbOgLfzXN-ROvFQ",
+            authDomain: "curaide-monitoring.firebaseapp.com",
+            databaseURL: "https://curaide-monitoring-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "curaide-monitoring"
+        };
+        firebase.initializeApp(config);
+        const db = firebase.database();
+
+        let currentTheme = 1;
+        let sensorData = { bpm: 75, spo2: 98, temp: 36.6, sbp: 120, dbp: 80 };
+        let history = [];
+
+        // --- NAVIGATION ---
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            if (email === "admin" || email.includes("@")) {
+                showPage('MainDashboard');
+                startLiveUpdates();
+            } else {
+                alert("Invalid Credentials");
+            }
+        }
+
+        function rotateTheme() {
+            currentTheme = (currentTheme + 1) % 3;
+            document.body.className = `theme-${currentTheme}`;
+        }
+
+        // --- TELEMETRY ---
+        function startLiveUpdates() {
+            setInterval(() => {
+                // Simulate Sensor Drift
+                sensorData.bpm = Math.floor(70 + Math.random() * 10);
+                sensorData.spo2 = Math.floor(96 + Math.random() * 4);
+                
+                document.getElementById('val-bpm').innerText = sensorData.bpm;
+                document.getElementById('val-spo2').innerText = sensorData.spo2;
+                document.getElementById('val-bp').innerText = `${sensorData.sbp}/${sensorData.dbp}`;
+                document.getElementById('val-temp').innerText = sensorData.temp.toFixed(1);
+
+                // Alert Logic
+                const banner = document.getElementById('alert-banner');
+                if (sensorData.bpm > 100 || sensorData.spo2 < 95) {
+                    banner.style.display = 'block';
+                } else {
+                    banner.style.display = 'none';
+                }
+            }, 1000);
+
+            // Mock Data Logging
+            setInterval(() => {
+                const now = new Date().toLocaleTimeString();
+                const row = `<tr><td>${now}</td><td>Vital Update</td><td>${sensorData.bpm}</td><td>${sensorData.spo2}%</td><td>120/80</td><td>36.6</td></tr>`;
+                const tbody = document.querySelector('#log-table tbody');
+                tbody.insertAdjacentHTML('afterbegin', row);
+                if (tbody.children.length > 8) tbody.lastChild.remove();
+            }, 5000);
+        }
+
+        // --- PATIENT MANAGEMENT ---
+        function initPatientSlots() {
+            const container = document.getElementById('slot-container');
+            for(let i=1; i<=8; i++) {
+                container.innerHTML += `
+                    <div class="card slot-card">
+                        <span class="status-badge" id="status-${i}" style="background: #F39C12" onclick="toggleStatus(${i})">PENDING</span>
+                        <div style="font-size: 11px; color: #64748B;">DISPENSER SLOT ${i}</div>
+                        <input type="text" placeholder="Medicine Name" id="med-${i}">
+                        <input type="text" placeholder="Instructions" id="desc-${i}" style="font-size: 11px;">
+                    </div>
+                `;
+            }
+        }
+
+        function toggleStatus(i) {
+            const el = document.getElementById(`status-${i}`);
+            if (el.innerText === "PENDING") {
+                el.innerText = "DISPENSED";
+                el.style.background = "#2ECC71";
+            } else {
+                el.innerText = "PENDING";
+                el.style.background = "#F39C12";
+            }
+        }
+
+        async function syncToCloud() {
+            const name = document.getElementById('patient-name').value;
+            if (!name) return alert("Enter Patient Name");
+            
+            let medications = {};
+            for(let i=1; i<=8; i++) {
+                medications[`slot_${i}`] = {
+                    medicine: document.getElementById(`med-${i}`).value,
+                    description: document.getElementById(`desc-${i}`).value,
+                    status: document.getElementById(`status-${i}`).innerText
+                };
+            }
+
+            try {
+                await db.ref('patient_management/' + name).set({
+                    last_updated: new Date().toLocaleString(),
+                    medications: medications
+                });
+                alert("Cloud Sync Successful!");
+            } catch (e) {
+                alert("Sync Error: " + e.message);
+            }
+        }
+
+        // Initialize
+        initPatientSlots();
+
+        // Canvas Drawing (Simplified Waveform)
+        const canvas = document.getElementById('vitalChart');
+        const ctx = canvas.getContext('2d');
+        let offset = 0;
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#E63946';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for(let x=0; x<canvas.width; x++) {
+                const y = 125 + Math.sin((x + offset) * 0.05) * 20;
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            offset += 2;
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+</body>
+</html>
