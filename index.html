@@ -26,7 +26,6 @@
             overflow-x: hidden; 
         }
 
-        /* Glassmorphism Effect */
         .glass-card {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
@@ -72,11 +71,11 @@
             font-size: 10px;
             font-weight: 700;
             letter-spacing: 0.05em;
+            cursor: pointer;
         }
 
         .hidden { display: none !important; }
         
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
         ::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 10px; }
@@ -178,7 +177,7 @@
                     <p class="text-xs font-semibold text-slate-400">% SpO2</p>
                 </div>
                 <div class="glass-card p-8 text-center relative overflow-hidden">
-                    <i data-lucide="stethoscopes" class="absolute -right-4 -top-4 w-20 h-20 opacity-5 text-[#9B59B6]"></i>
+                    <i data-lucide="activity" class="absolute -right-4 -top-4 w-20 h-20 opacity-5 text-[#9B59B6]"></i>
                     <p class="text-xs text-slate-500 font-bold tracking-widest uppercase mb-4">Blood Pressure</p>
                     <h2 id="val-bp" class="text-5xl font-bold text-[#9B59B6] mb-2 mt-2">--/--</h2>
                     <p class="text-xs font-semibold text-slate-400">mmHg</p>
@@ -192,13 +191,7 @@
             </div>
 
             <div class="glass-card p-8 mb-10">
-                <div class="flex justify-between items-center mb-6">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Live Vitals Waveform</p>
-                    <div class="flex gap-4">
-                        <span class="flex items-center gap-2 text-[10px] font-bold"><span class="w-3 h-1 bg-[#E63946]"></span> HR</span>
-                        <span class="flex items-center gap-2 text-[10px] font-bold"><span class="w-3 h-1 bg-[#00B4D8]"></span> SpO2</span>
-                    </div>
-                </div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Live Vitals Waveform</p>
                 <div class="h-80"><canvas id="liveChart"></canvas></div>
             </div>
 
@@ -226,7 +219,7 @@
         <div id="view-patients" class="hidden">
             <h1 class="text-4xl font-bold mb-4">Patient Medication Control</h1>
             <div class="bg-amber-500/10 border border-amber-500/30 text-amber-500 p-3 rounded-xl text-xs font-bold mb-8 flex items-center justify-center gap-2">
-                <i data-lucide="bell" class="w-4 h-4"></i> Clinical Advisory: Medication schedule pending cloud synchronization.
+                <i data-lucide="bell" class="w-4 h-4"></i> Clinical Advisory: Changes sync automatically on status toggle.
             </div>
             
             <div class="glass-card p-8 mb-8">
@@ -247,20 +240,18 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6" id="med-grid">
-                </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6" id="med-grid"></div>
 
-            <button onclick="syncToCloud()" class="w-full mt-10 bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-lg hover:shadow-green-500/20 transition-all h-20 rounded-2xl font-bold text-xl flex items-center justify-center gap-3">
-                <i data-lucide="cloud-upload" class="w-6 h-6"></i> Sync Dispenser Schedule to Firebase
+            <button onclick="syncToCloud(true)" class="w-full mt-10 bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-lg hover:shadow-green-500/20 transition-all h-20 rounded-2xl font-bold text-xl flex items-center justify-center gap-3">
+                <i data-lucide="cloud-upload" class="w-6 h-6"></i> Manual Force Sync to Firebase
             </button>
         </div>
     </main>
 
     <script>
-        // Initialize Lucide Icons
         lucide.createIcons();
 
-        // --- 1. FIREBASE CONFIG ---
+        // 1. FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyDlazpBn7xCUGK9kuqPTbOgLfzXN-ROvFQ",
             databaseURL: "https://curaide-monitoring-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -269,7 +260,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- 2. AUTH & NAVIGATION ---
+        // 2. NAVIGATION
         function handleLogin() {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
@@ -286,13 +277,11 @@
         function showPage(page) {
             const views = ['view-dashboard', 'view-patients'];
             const navs = ['nav-dash', 'nav-pat'];
-            
             views.forEach(v => document.getElementById(v).classList.add('hidden'));
             navs.forEach(n => {
                 document.getElementById(n).classList.remove('bg-[#E63946]', 'text-white');
                 document.getElementById(n).classList.add('text-slate-400');
             });
-
             if(page === 'dashboard') {
                 document.getElementById('view-dashboard').classList.remove('hidden');
                 document.getElementById('nav-dash').classList.add('bg-[#E63946]', 'text-white');
@@ -302,7 +291,7 @@
             }
         }
 
-        // --- 3. LIVE DASHBOARD ---
+        // 3. CHART & TELEMETRY
         let telemetryHistory = [];
         const ctx = document.getElementById('liveChart').getContext('2d');
         const liveChart = new Chart(ctx, {
@@ -315,33 +304,26 @@
                 ]
             },
             options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
+                responsive: true, maintainAspectRatio: false, 
                 plugins: { legend: { display: false } },
                 scales: { 
-                    y: { min: 40, max: 180, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748B', font: { family: 'Quicksand' } } }, 
+                    y: { min: 40, max: 180, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748B' } }, 
                     x: { display: false } 
                 } 
             }
         });
 
         function initApp() {
+            // Real-time sensor listener
             db.ref("sensor_data").on("value", (snapshot) => {
                 const data = snapshot.val();
                 if(!data) return;
-                
-                document.getElementById('val-bpm').innerText = data.bpm;
-                document.getElementById('val-spo2').innerText = data.spo2;
-                document.getElementById('val-temp').innerText = data.temp.toFixed(1);
-                document.getElementById('val-bp').innerText = `${data.sbp}/${data.dbp}`;
+                document.getElementById('val-bpm').innerText = data.bpm || "--";
+                document.getElementById('val-spo2').innerText = data.spo2 || "--";
+                document.getElementById('val-temp').innerText = data.temp ? data.temp.toFixed(1) : "--";
+                document.getElementById('val-bp').innerText = (data.sbp && data.dbp) ? `${data.sbp}/${data.dbp}` : "--/--";
 
-                const banner = document.getElementById('alert-banner');
-                if(data.bpm > 100 || data.bpm < 60 || data.spo2 < 95) {
-                    banner.classList.remove('hidden');
-                    banner.innerHTML = `<i data-lucide="alert-triangle"></i> ALERT: Abnormal Vitals Detected (HR: ${data.bpm} | SpO2: ${data.spo2}%)`;
-                    lucide.createIcons();
-                } else { banner.classList.add('hidden'); }
-
+                // Live Chart Sync
                 liveChart.data.datasets[0].data.push(data.bpm);
                 liveChart.data.datasets[1].data.push(data.spo2);
                 if(liveChart.data.datasets[0].data.length > 20) {
@@ -351,17 +333,17 @@
                 liveChart.update('none');
             });
 
+            // Logs listener
             db.ref("telemetry_logs").limitToLast(10).on("value", (snapshot) => {
                 const tbody = document.getElementById('log-table-body');
                 tbody.innerHTML = "";
                 snapshot.forEach(child => {
                     const log = child.val();
-                    telemetryHistory.push(log);
                     tbody.insertAdjacentHTML('afterbegin', `
-                        <tr class="hover:bg-white/5 transition-colors">
+                        <tr class="hover:bg-white/5">
                             <td class="p-6 text-slate-500 font-mono text-xs">${log.timestamp}</td>
                             <td class="p-6 font-bold text-xs uppercase">${log.event}</td>
-                            <td class="p-6 text-[#E63946] font-bold">${log.hr} <span class="text-[10px] opacity-50">bpm</span></td>
+                            <td class="p-6 text-[#E63946] font-bold">${log.hr} bpm</td>
                             <td class="p-6 text-[#00B4D8] font-bold">${log.spo2}%</td>
                             <td class="p-6 text-[#9B59B6] font-bold">${log.bp}</td>
                             <td class="p-6 text-[#2ECC71] font-bold">${log.temp}°C</td>
@@ -374,7 +356,7 @@
             generateMedGrid();
         }
 
-        // --- 4. PATIENT MANAGEMENT ---
+        // 4. PATIENT & MEDICATION SYNC
         function generateMedGrid() {
             const grid = document.getElementById('med-grid');
             grid.innerHTML = "";
@@ -382,14 +364,12 @@
                 grid.innerHTML += `
                     <div class="glass-card p-6 border-l-4 border-l-slate-700">
                         <div class="flex justify-between items-start mb-6">
-                            <div>
-                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Slot 0${i}</p>
-                            </div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase">Slot 0${i}</p>
                             <button id="status-${i}" onclick="toggleStatus(${i})" class="status-badge bg-amber-500/20 text-amber-500">PENDING</button>
                         </div>
                         <div class="space-y-3">
                             <input type="text" id="med-${i}" placeholder="Medicine Name" class="input-field w-full text-sm font-bold">
-                            <input type="text" id="desc-${i}" placeholder="Dosage/Instructions" class="input-field w-full text-xs opacity-60">
+                            <input type="text" id="desc-${i}" placeholder="Dosage" class="input-field w-full text-xs opacity-60">
                             <div class="flex gap-2">
                                 <select id="freq-${i}" class="input-field w-1/2 text-[10px] font-bold">
                                     <option>1x Daily</option><option>2x Daily</option><option>Every 4 Hours</option>
@@ -415,39 +395,39 @@
         function onPatientSelect(name) {
             if(!name) return;
             document.getElementById('patient-name-entry').value = name;
-            db.ref(`patient_management/${name}`).once("value", (snap) => {
+            db.ref(`patient_management/${name}/medications`).once("value", (snap) => {
                 const data = snap.val();
-                if(data && data.medications) {
-                    for(let i=1; i<=8; i++) {
-                        const m = data.medications[`slot_${i}`];
-                        if(m) {
-                            document.getElementById(`med-${i}`).value = m.medicine || "";
-                            document.getElementById(`desc-${i}`).value = m.description || "";
-                            document.getElementById(`freq-${i}`).value = m.frequency || "1x Daily";
-                            document.getElementById(`time-${i}`).value = m.start_time || "";
-                            toggleStatus(i, m.status);
-                        }
+                if(!data) return;
+                for(let i=1; i<=8; i++) {
+                    const m = data[`slot_${i}`];
+                    if(m) {
+                        document.getElementById(`med-${i}`).value = m.medicine || "";
+                        document.getElementById(`desc-${i}`).value = m.description || "";
+                        document.getElementById(`freq-${i}`).value = m.frequency || "1x Daily";
+                        document.getElementById(`time-${i}`).value = m.start_time || "";
+                        updateStatusUI(i, m.status);
                     }
                 }
             });
         }
 
-        function toggleStatus(i, forcedStatus = null) {
+        function updateStatusUI(i, status) {
             const btn = document.getElementById(`status-${i}`);
-            const current = btn.innerText;
-            const next = forcedStatus || (current === "PENDING" ? "DISPENSED" : "PENDING");
-            btn.innerText = next;
-            
-            if(next === "DISPENSED") {
-                btn.className = "status-badge bg-green-500/20 text-green-500";
-            } else {
-                btn.className = "status-badge bg-amber-500/20 text-amber-500";
-            }
+            btn.innerText = status;
+            btn.className = status === "DISPENSED" ? "status-badge bg-green-500/20 text-green-500" : "status-badge bg-amber-500/20 text-amber-500";
         }
 
-        function syncToCloud() {
+        function toggleStatus(i) {
+            const btn = document.getElementById(`status-${i}`);
+            const next = btn.innerText === "PENDING" ? "DISPENSED" : "PENDING";
+            updateStatusUI(i, next);
+            // AUTO SYNC TO CLOUD ON TOGGLE
+            syncToCloud(false); 
+        }
+
+        function syncToCloud(showAlert = true) {
             const name = document.getElementById('patient-name-entry').value;
-            if(!name) return alert("System Alert: Please enter or select a patient.");
+            if(!name) { if(showAlert) alert("Select a patient first."); return; }
             
             const meds = {};
             for(let i=1; i<=8; i++) {
@@ -460,22 +440,25 @@
                 };
             }
 
-            db.ref(`patient_management/${name}`).set({
+            db.ref(`patient_management/${name}`).update({
                 last_updated: new Date().toLocaleString(),
                 medications: meds
-            }).then(() => alert("Cloud Sync Success: Database Updated"));
+            }).then(() => { if(showAlert) alert("Synced successfully!"); });
         }
 
         function exportLogs() {
             let csv = "Timestamp,Event,HR,SpO2,BP,Temp\n";
-            telemetryHistory.forEach(l => {
-                csv += `${l.timestamp},${l.event},${l.hr},${l.spo2},${l.bp},${l.temp}\n`;
+            // Simple log generation logic
+            const rows = document.querySelectorAll('#log-table-body tr');
+            rows.forEach(tr => {
+                const cells = tr.querySelectorAll('td');
+                csv += Array.from(cells).map(c => c.innerText.replace(',', '')).join(',') + "\n";
             });
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', 'Curaide_Clinical_Logs.csv');
+            a.href = url;
+            a.download = 'Curaide_Logs.csv';
             a.click();
         }
     </script>
